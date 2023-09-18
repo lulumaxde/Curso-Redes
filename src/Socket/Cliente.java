@@ -1,44 +1,60 @@
 package Socket;
 
-import java.io.PrintStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Scanner;
 
-public class Cliente {
+public class Cliente implements Runnable {
 
-	public static void main(String[] args) {
-		try {
-			//Declarando e criando o socket com a porta desejada
-			Socket cliente = new Socket("localhost", 7000);
-			
-			Scanner teclado = new Scanner(System.in);
-			Scanner chegada = new Scanner(cliente.getInputStream());
-			
-			//Declarando e criando  o fluxo de dados de saida
-			PrintStream saida = new PrintStream(cliente.getOutputStream());
-			
-			String msg = "";
-			do {
-				
-				System.out.println("Informe a mensagem a ser enviada: ");
-				msg = teclado.nextLine();
-				saida.println(msg);
-				// Mandei A mensagem para o servidor
-				String resposta = chegada.nextLine();
-				//System.out.println("Cliente Mensagem: ("+ msg +")");
-				//System.out.println("Servidor Mensagem Resposta:  ("+ resposta +")");
-				//System.out.println("/------------------------------------------/ ");
-				
-			}while (msg.length() != 0 );
-			
-			
-			cliente.close();
-			
-		}
-		catch(Exception e) {
-			System.out.println("Problema na criacao de conexão com o servidor");
-		}
+    private Socket client;
+    private BufferedReader in;
+    private PrintWriter out;
+    private boolean status;
 
-	}
+    @Override
+    public void run() {
+        try {
+            client = new Socket("localhost", 9999);
 
+            out = new PrintWriter(client.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+
+            InputHandler inHandler = new InputHandler();
+            Thread t = new Thread(inHandler);
+            t.start();
+
+            String inMessage;
+            while ((inMessage = in.readLine()) != null) {
+                System.out.println(inMessage);
+            }
+        } catch (IOException e) {
+        	System.out.println("Problema na criação da conexao com o servidor");
+        }
+    }
+
+
+    class InputHandler implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                	BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
+
+	                while (!status) {
+	                    String message = inReader.readLine();
+	                    out.println(message);                    
+	                }
+            	} catch (IOException e) {
+               
+            	}
+        }
+    }
+
+    public static void main(String[] args) {
+        Cliente client = new Cliente();
+        client.run();
+    }
 }
+
